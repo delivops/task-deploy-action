@@ -2,19 +2,10 @@ name: 'ECS Deploy Action'
 description: 'Deploy an application to Amazon ECS using a simplified YAML configuration'
 
 inputs:
-  environment:
-    description: 'The environment to deploy to'
-    required: true
-  ecs_service:
+  ecs_task:
     description: 'The name of the ECS service'
     required: true
-  image_name:
-    description: 'The name of the Docker image'
-    required: true
-  tag:
-    description: 'The tag of the Docker image'
-    required: true
-  task_config_yaml:
+  samconfig_yaml:
     description: 'Path to the YAML file containing task configuration'
     required: true
   aws_account_id:
@@ -30,14 +21,7 @@ inputs:
     description: 'The AWS IAM role to assume'
     default: 'github_services'
     required: false
-  dry_run:
-    description: 'Whether to perform a dry run'
-    default: 'false'
-    required: false 
-  ecr_registry:
-    description: 'The ECR registry URL'
-    required: false
-    default: 'true'
+
 
 runs:
   using: "composite"
@@ -69,24 +53,25 @@ runs:
           "${{ inputs.tag }}" 
       shell: bash
 
-    - id: generate-sam-template
-      run: |
-        python3 ${{ github.action_path }}/scripts/generate_sam_template.py \
-          "${{ inputs.task_config_yaml }}" \
-          "${{ inputs.ecs_cluster }}" \
-          "${{ inputs.aws_region }}" \
-          "${{ steps.define-registry.outputs.registry }}" \
-          "${{ inputs.image_name }}" \
-          "${{ inputs.tag }}" 
-      shell: bash      
-
     - uses: aws-actions/amazon-ecs-deploy-task-definition@v2.3.1
       if: ${{ inputs.dry_run }} == 'false'
       id: ecs-deploy
       with:
         task-definition: task-definition.json
-        service: ${{ inputs.ecs_service }}
         cluster: ${{ inputs.ecs_cluster }}
-        desired-count: ${{ steps.generate-task-def.outputs.replica_count }}
-        wait-for-service-stability: true
         
+    - id: generate-sam
+      run: |
+        python3 ${{ github.action_path }}/scripts/generate_step_function.py \
+          "${{ inputs.task_config_yaml }}" \
+          "${{ steps.ecs-deploy.outputs.task-definition-arn }}"
+      shell: bash      
+
+    - uses: delivops/sam-deploy-action@main
+      with:
+        aws_region: ${{ inputs.aws_region }}
+        aws_account_id: ${{ inputs.aws_account_id }}
+        aws_role: ${{ inputs.aws_role }}
+        sam_config_path: ${{ inputs.samconfig_yaml }}
+        stack_name: ${{ inputs.ecs_task }}
+        sam_template_path: template.yaml      

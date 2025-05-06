@@ -1,36 +1,78 @@
-# ECS Deploy Action
+# Task Deploy Action
 
-This GitHub composite action simplifies deploying applications to Amazon ECS by generating a task definition from a simple YAML configuration and handling the deployment process.
+This project provides a workflow for deploying ECS tasks using an AWS SAM template. It includes utilities to generate a SAM template from a simple YAML configuration and deploy ECS tasks in a streamlined, reproducible way.
 
 ## Features
 
-- Generates ECS task definitions from simplified YAML configurations
-- Supports optional OpenTelemetry collector sidecars
-- Handles environment variables and secrets
-- Configures proper logging
-- Supports custom CPU and memory allocations
-- Verifies successful deployments
+- Generates AWS SAM templates for ECS Step Functions from user-friendly YAML configs
+- Deploys ECS tasks using the AWS SAM template
+- Supports custom task definition ARNs and workflow parameters
+- Integrates with GitHub Actions or can be run manually
+- Simplifies and automates the ECS task deployment process
 
 ## Usage
 
-### In Your Workflow
+### 1. Prepare Your Configuration
+
+- Write your workflow configuration in YAML (e.g., `examples/sam.yaml`).
+- Prepare a `samconfig` file with your environment-specific values (e.g., cluster ARN, subnet IDs, security group IDs).
+
+### 2. Generate the SAM Template
+
+Use the provided script to generate a SAM template:
+
+```bash
+python3 scripts/generate_step_function.py \
+  --config examples/sam.yaml \
+  --task-arn <YOUR_TASK_DEFINITION_ARN> \
+  --samconfig <PATH_TO_SAMCONFIG>
+```
+
+This will generate a `template.yaml` file in the output directory (default: `terraform/`).
+
+### 3. Deploy the SAM Template
+
+You can deploy the generated `template.yaml` using the AWS SAM CLI:
+
+```bash
+sam deploy --template-file terraform/template.yaml --guided
+```
+
+Or integrate this process into your CI/CD pipeline.
+
+## Example Workflow (GitHub Actions)
 
 ```yaml
-name: Deploy Application
+name: Deploy ECS Task
 on:
   push:
     branches:
       - main
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - uses: actions/checkout@v4
-      
+      - name: Generate SAM Template
+        run: |
+          python3 scripts/generate_step_function.py \
+            --config examples/sam.yaml \
+            --task-arn ${{ secrets.ECS_TASK_ARN }} \
+            --samconfig samconfig.yaml
+      - name: Deploy to AWS
+        run: |
+          sam deploy --template-file terraform/template.yaml --no-confirm-changeset --no-fail-on-empty-changeset --stack-name my-ecs-task-stack
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+```
+
+## Notes
+- Ensure your `samconfig` file contains the necessary ECS and networking parameters.
+- The script and template support customization for your ECS workloads.
+- See the scripts and examples for more advanced usage.
+
       # Build and tag your image here  
       
       - name: Deploy to ECS

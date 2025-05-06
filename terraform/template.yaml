@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Retrieves Tableau users views data
+Outputs:
+  StateMachineArn:
+    Description: ARN of the created Step Function
+    Value:
+      Fn::GetAtt:
+      - StepFunction
+      - Arn
+Parameters:
+  ClusterArn:
+    Default: ''
+    Description: ARN of the ECS cluster
+    Type: String
+  SecurityGroupIds:
+    Default: ''
+    Description: List of security group IDs for the ECS task
+    Type: CommaDelimitedList
+  SubnetIds:
+    Default: ''
+    Description: List of subnet IDs for the ECS task
+    Type: CommaDelimitedList
+  TaskRoleArn:
+    Default: arn:aws:iam::123456789012:role/ecsTaskExecutionRole
+    Description: IAM role ARN for the ECS task execution
+    Type: String
+Resources:
+  ScheduleRule:
+    Properties:
+      Name: app-schedule-rule
+      ScheduleExpression: cron(20 4,6 * * ? *)
+      Targets:
+      - Arn:
+          Fn::GetAtt:
+          - StepFunction
+          - Arn
+        Id: StepFunctionTarget
+        RoleArn:
+          Ref: TaskRoleArn
+    Type: AWS::Events::Rule
+  StepFunction:
+    Properties:
+      Definition:
+        Comment: Retrieves Tableau users views data
+        StartAt: RunTask
+        States:
+          RunTask:
+            End: true
+            Parameters:
+              Cluster:
+                Ref: ClusterArn
+              LaunchType: FARGATE
+              NetworkConfiguration:
+                AwsvpcConfiguration:
+                  AssignPublicIp: ENABLED
+                  SecurityGroups:
+                    Ref: SecurityGroupIds
+                  Subnets:
+                    Ref: SubnetIds
+              TaskDefinition: '123'
+            Resource: arn:aws:states:::ecs:runTask.sync
+            Retry:
+            - BackoffRate: 2.0
+              ErrorEquals:
+              - States.TaskFailed
+              IntervalSeconds: 60
+              MaxAttempts: 3
+            Type: Task
+        TimeoutSeconds: 3600
+      RoleArn:
+        Ref: TaskRoleArn
+      StateMachineName: app
+    Type: AWS::StepFunctions::StateMachine
+Transform: AWS::Serverless-2016-10-31

@@ -14,12 +14,15 @@ port: 8080
 command: ["hello"]
 entrypoint: ["world"]
 
+description: "Retrieves Tableau users views data"
 schedule: "cron(20 4,6 * * ? *)"  # AWS cron syntax for 4:20am and 6:20am every day
 execution:
   timeoutSeconds: 3600  # 1 hour max execution time
-  retryPolicy:
-    maxAttempts: 3
-    backoffRate: 2.0
-    intervalSeconds: 60
+
+retryPolicy:
+  maxAttempts: 3
+  backoffRate: 2.0
+  intervalSeconds: 60
+
 
 //run: python3 scripts/generate_task_def.py examples/public-image.yaml my-cluster us-east-1 "" dummy-image dummy-tag
