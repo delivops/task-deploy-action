@@ -59,7 +59,7 @@ def generate_sam_template(config, task_arn):
                 "Description": "List of security group IDs for the ECS task",
                 "Default": ','
             },
-            "TaskRoleArn": {
+            "EventRoleArn": {
                 "Type": "String",
                 "Description": "IAM role ARN for the ECS task execution",
                 "Default": ''
@@ -70,7 +70,7 @@ def generate_sam_template(config, task_arn):
                 "Type": "AWS::StepFunctions::StateMachine",
                 "Properties": {
                     "StateMachineName": name,
-                    "RoleArn": {"Ref": "TaskRoleArn"},
+                    "RoleArn": {"Ref": "EventRoleArn"},
                     "Definition": {
                         "Comment": description,
                         "StartAt": "RunTask",
@@ -111,7 +111,7 @@ def generate_sam_template(config, task_arn):
                     "Targets": [{
                         "Id": "StepFunctionTarget",
                         "Arn": {"Fn::GetAtt": ["StepFunction", "Arn"]},
-                        "RoleArn": {"Ref": "TaskRoleArn"}
+                        "RoleArn": {"Ref": "EventRoleArn"}
                     }]
                 }
             }
