@@ -67,11 +67,13 @@ runs:
         python3 ${{ github.action_path }}/scripts/generate_step_function.py \
           --config "${{ inputs.task_config_yaml }}" \
           --task-arn "${{ steps.ecs-deploy.outputs.task-definition-arn }}"
-      shell: bash      
+      shell: bash 
+      working-directory: ${{ github.workspace}}
 
     - name: Print generated SAM template
       run: cat template.yaml
       shell: bash
+      working-directory: ${{ github.workspace}}
 
     - uses: delivops/sam-deploy-action@main
       with:
