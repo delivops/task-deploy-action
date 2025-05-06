@@ -21,7 +21,9 @@ inputs:
     description: 'The AWS IAM role to assume'
     default: 'github_services'
     required: false
-
+  task_config_yaml:
+    description: 'Path to the YAML file containing task configuration'
+    required: true
 
 runs:
   using: "composite"
