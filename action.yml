@@ -24,7 +24,12 @@ inputs:
   task_config_yaml:
     description: 'Path to the YAML file containing task configuration'
     required: true
-
+  image_name:
+    description: 'The name of the Docker image'
+    required: true
+  tag:
+    description: 'The tag of the Docker image'
+    required: true
 runs:
   using: "composite"
   steps:
@@ -56,7 +61,6 @@ runs:
       shell: bash
 
     - uses: aws-actions/amazon-ecs-deploy-task-definition@v2.3.1
-      if: ${{ inputs.dry_run }} == 'false'
       id: ecs-deploy
       with:
         task-definition: task-definition.json
